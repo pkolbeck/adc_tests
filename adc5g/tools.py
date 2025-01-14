@@ -1,10 +1,10 @@
 from struct import pack, unpack
-from opb import (
+from .opb import (
     OPB_CONTROLLER,
     OPB_DATA_FMT,
     inc_mmcm_phase,
     )
-from spi import (
+from .spi import (
     get_spi_control,
     set_spi_control,
     )
@@ -58,7 +58,7 @@ def get_test_vector(roach, snap_names, bitwidth=8, man_trig=True, wait_period=2)
     mode.
     """
     data_out = []
-    cores_per_snap = 4/len(snap_names)
+    cores_per_snap = 4//len(snap_names)
     for snap in snap_names:
         data = get_snapshot(roach, snap, bitwidth, man_trig=man_trig, wait_period=wait_period)
         data_bin = list(((p+128)>>1) ^ (p+128) for p in data)
@@ -78,14 +78,14 @@ def set_test_mode(roach, zdok_n):
     test_mode(roach, zdok_n, on=True)
     control = get_spi_control(roach, zdok_n)
     if control['test'] != 1:
-        raise RuntimeError, "Set test mode failed!"
+        raise RuntimeError("Set test mode failed!")
 
 
 def unset_test_mode(roach, zdok_n):
     test_mode(roach, zdok_n, on=False)
     control = get_spi_control(roach, zdok_n)
     if control['test'] != 0:
-        raise RuntimeError, "Un-set test mode failed!"
+        raise RuntimeError("Un-set test mode failed!")
 
 
 def sync_adc(roach, zdok_0=True, zdok_1=True):
@@ -124,12 +124,16 @@ def calibrate_mmcm_phase(roach, zdok_n, snap_names, bitwidth=8, man_trig=True, w
             falling = zero_glitches.index(False, n_zero)
             n_zero  = falling + 1
             min_len = falling - rising
-            if min_len > longest_min:
+            if longest_min is not None:
+                if min_len > longest_min:
+                    longest_min = min_len
+                    optimal_ps = rising + int((falling-rising)/2)
+            elif min_len is not None:
                 longest_min = min_len
                 optimal_ps = rising + int((falling-rising)/2)
         except ValueError:
             break
-    if longest_min==None:
+    if longest_min is None:
         #raise ValueError("No optimal MMCM phase found!")
         return None, glitches_per_ps
     else:
